@@ -79,7 +79,7 @@ Input (latent_dim) → Dense(7×7×64) → Reshape(7,7,64)
 ## 🚀 Instalação
 
 ### Pré-requisitos
-- Python 3.8+
+- Python 3.11
 - pip
 - Ambiente virtual (recomendado)
 
@@ -91,8 +91,8 @@ cd Aula03
 
 ### 2. Crie e Ative o Ambiente Virtual
 ```bash
-# Criar ambiente virtual
-python3 -m venv .venv
+# Criar ambiente virtual com Python 3.11
+python3.11 -m venv .venv
 
 # Ativar (Linux/Mac)
 source .venv/bin/activate
@@ -107,13 +107,6 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 
 # Instalar dependências
-pip install -r requirements.txt
-```
-
-**Nota**: Se você tiver Python 3.12 e encontrar problemas com TensorFlow 2.16.1, atualize para uma versão compatível:
-```bash
-# Editar requirements.txt
-sed -i 's/tensorflow==2.16.1/tensorflow==2.17.0/' requirements.txt
 pip install -r requirements.txt
 ```
 

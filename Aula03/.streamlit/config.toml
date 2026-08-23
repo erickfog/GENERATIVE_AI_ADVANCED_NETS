@@ -1,0 +1,9 @@
+[server]
+# Evita o app ficar preso em "Running..." varrendo o ambiente virtual.
+fileWatcherType = "poll"
+folderWatchBlacklist = [".venv", "__pycache__", "models", "outputs"]
+# O file_uploader do Streamlit devolve AxiosError 403 quando o app abre
+# no preview/iframe do Cursor. Desliga XSRF/CORS só neste app local.
+enableCORS = false
+enableXsrfProtection = false
+headless = true

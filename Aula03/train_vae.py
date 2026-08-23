@@ -52,7 +52,9 @@ def load_pneumonia_mnist(split: str):
 
     split: 'train', 'val' ou 'test'
     """
-    from medmnist import PneumoniaMNIST  # import tardio para evitar custo quando não usado
+    # Import direto da classe evita o try/except amplo do medmnist/__init__.py,
+    # que engole falhas (e até Ctrl+C) e depois quebra com ImportError.
+    from medmnist.dataset import PneumoniaMNIST
 
     dataset = PneumoniaMNIST(split=split, download=True)
     # dataset.imgs tipicamente é uint8 no shape (N,28,28,1) para grayscale
@@ -131,11 +133,9 @@ class VAE(tf.keras.Model):
 
     def compute_losses(self, data, reconstruction, z_mean, z_log_var):
         # Perda de reconstrução (BCE por pixel). A BCE do Keras reduz o último eixo,
-        # então o tensor resultante pode ser (batch, 28, 28). Somamos todas as
-        # dimensões após o batch, de forma robusta para 3D ou 4D.
+        # então o tensor fica (batch, 28, 28). Somamos altura e largura por exemplo.
         bce = tf.keras.losses.binary_crossentropy(data, reconstruction)
-        axes = tf.range(1, tf.rank(bce))
-        recon_per_example = tf.reduce_sum(bce, axis=axes)
+        recon_per_example = tf.reduce_sum(bce, axis=(1, 2))
         recon_loss = tf.reduce_mean(recon_per_example)
         # Divergência KL (média no batch)
         kl_loss = -0.5 * tf.reduce_mean(

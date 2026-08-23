@@ -1,10 +1,18 @@
 import os
 import json
 import io
+
+# Evita tentativa de GPU (falha neste ambiente) e reduz risco de deadlock com o Streamlit.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
 import numpy as np
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
+
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
 
 # ==============================================
 # App Streamlit para VAE PneumoniaMNIST
@@ -68,20 +76,23 @@ class VAE(tf.keras.Model):
         return self.decoder(z, training=training)
 
 
+@st.cache_resource
 def load_model():
     if not os.path.exists(CONFIG_PATH) or not os.path.exists(WEIGHTS_PATH):
         return None, 'Pesos ou configuração não encontrados. Treine o modelo executando train_vae.py.'
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    latent_dim = int(config.get('latent_dim', 16))
-    encoder = build_encoder(latent_dim)
-    decoder = build_decoder(latent_dim)
-    vae = VAE(encoder, decoder)
-    # Construir o modelo chamando uma passagem dummy antes de carregar pesos
-    dummy = tf.zeros((1, 28, 28, 1))
-    _ = vae(dummy, training=False)
-    vae.load_weights(WEIGHTS_PATH)
-    return vae, None
+    try:
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        latent_dim = int(config.get('latent_dim', 16))
+        encoder = build_encoder(latent_dim)
+        decoder = build_decoder(latent_dim)
+        vae = VAE(encoder, decoder)
+        dummy = tf.zeros((1, 28, 28, 1))
+        _ = vae(dummy, training=False)
+        vae.load_weights(WEIGHTS_PATH)
+        return vae, None
+    except Exception as exc:
+        return None, f'Falha ao carregar o modelo: {exc}'
 
 
 def preprocess_image(image: Image.Image) -> np.ndarray:
@@ -136,7 +147,8 @@ st.title('VAE PneumoniaMNIST - Triagem de Pneumonia e Geração de Imagens')
 # Sidebar para carregar modelo
 with st.sidebar:
     st.header('Modelo VAE')
-    vae, err = load_model()
+    with st.spinner('Carregando modelo VAE...'):
+        vae, err = load_model()
     if err:
         st.error(err)
         st.stop()
@@ -175,10 +187,10 @@ with tab1:
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Imagem Original")
-            st.image(x[0].squeeze(), clamp=True, use_column_width=True)
+            st.image(x[0].squeeze(), clamp=True, use_container_width=True)
         with col2:
             st.subheader("Reconstrução VAE")
-            st.image(recon[0].squeeze(), clamp=True, use_column_width=True)
+            st.image(recon[0].squeeze(), clamp=True, use_container_width=True)
         
         # Resultado da triagem
         st.markdown("---")
@@ -231,10 +243,10 @@ with tab2:
         cols = st.columns(num_images)
         for i, col in enumerate(cols):
             with col:
-                st.image(st.session_state.generated_images[i].squeeze(), 
-                        clamp=True, 
+                st.image(st.session_state.generated_images[i].squeeze(),
+                        clamp=True,
                         caption=f"Imagem {i+1}",
-                        use_column_width=True)
+                        use_container_width=True)
         
         # Botão para download
         if st.button("💾 Salvar Imagens"):
